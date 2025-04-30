@@ -54,12 +54,14 @@ IdleExitTimeout 60
 <Location />
   Order allow,deny
   Allow @LOCAL
+  Allow 192.168.100.0/24
 </Location>
 
 # Restrict access to the admin pages...
 <Location /admin>
   Order allow,deny
   Allow @LOCAL
+  Allow 192.168.100.0/24
 </Location>
 
 # Restrict access to configuration files...
