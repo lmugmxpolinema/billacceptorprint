@@ -11,15 +11,27 @@ echo "Update Package"
 echo "========================================"
 
 sudo apt update
-sudo apt install -y git curl wget python3 ca-certificates gnupg apt-transport-https
+sudo apt install -y \
+git \
+curl \
+wget \
+python3 \
+ca-certificates \
+gnupg \
+apt-transport-https
 
 echo "========================================"
 echo "Clone Project"
 echo "========================================"
 
-if [ ! -d billacceptorprint ]; then
-    git clone https://github.com/lmugmxpolinema/billacceptorprint.git
+cd "$HOME"
+
+if [ -d "billacceptorprint" ]; then
+    echo "Project lama ditemukan. Menghapus..."
+    rm -rf billacceptorprint
 fi
+
+git clone https://github.com/lmugmxpolinema/billacceptorprint.git
 
 cd billacceptorprint
 
@@ -47,10 +59,10 @@ sudo apt update
 sudo apt install -y anydesk
 
 echo "========================================"
-echo "Run Printer Setup"
+echo "Run setupprint.py"
 echo "========================================"
 
-python3 setupprint.py
+sudo python3 setupprint.py
 
 echo "========================================"
 echo "Configure Blueprint Printer"
@@ -59,30 +71,58 @@ echo "========================================"
 sudo systemctl enable cups
 sudo systemctl restart cups
 
-DEVICE=$(lpinfo -v | awk '/BP-LITE80D1/ {print $2; exit}')
+echo "Menunggu CUPS..."
+sleep 5
+
+DEVICE=""
+
+echo "Mencari printer..."
+
+for i in {1..10}; do
+
+    DEVICE=$(lpinfo -v | grep "usb://Blueprint/BP-LITE80D1" | head -n1 | awk '{print $2}')
+
+    if [ -n "$DEVICE" ]; then
+        break
+    fi
+
+    echo "Percobaan $i/10..."
+    sleep 2
+
+done
 
 if [ -z "$DEVICE" ]; then
-    echo "Printer BP-LITE80D1 tidak ditemukan."
+    echo "========================================"
+    echo "Printer Blueprint BP-LITE80D1 tidak ditemukan!"
+    echo "========================================"
     exit 1
 fi
 
+echo "Printer ditemukan:"
+echo "$DEVICE"
+
 if lpstat -p "$PRINTER_NAME" >/dev/null 2>&1; then
+    echo "Menghapus printer lama..."
     sudo lpadmin -x "$PRINTER_NAME"
 fi
 
-sudo lpadmin \
-    -p "$PRINTER_NAME" \
-    -D "$PRINTER_DESCRIPTION" \
-    -L "$PRINTER_LOCATION" \
-    -E \
-    -v "$DEVICE" \
-    -m "$PRINTER_DRIVER"
+echo "Menambahkan printer..."
 
 sudo lpadmin \
-    -p "$PRINTER_NAME" \
-    -o OptionCutter=True \
-    -o PageSize=X70MMY105MM \
-    -o CutMedia=EndOfPage
+-p "$PRINTER_NAME" \
+-D "$PRINTER_DESCRIPTION" \
+-L "$PRINTER_LOCATION" \
+-E \
+-v "$DEVICE" \
+-m "$PRINTER_DRIVER"
+
+echo "Mengatur default options..."
+
+sudo lpadmin \
+-p "$PRINTER_NAME" \
+-o OptionCutter=True \
+-o PageSize=X70MMY105MM \
+-o CutMedia=EndOfPage
 
 sudo lpoptions -d "$PRINTER_NAME"
 
@@ -111,6 +151,7 @@ echo "========================================"
 echo "Verifikasi"
 echo "========================================"
 
+echo
 echo "Brave Version:"
 brave-browser --version || true
 
@@ -127,7 +168,10 @@ echo "Default Printer:"
 lpstat -d
 
 echo
+echo "Konfigurasi Printer:"
+lpoptions -p "$PRINTER_NAME"
+
+echo
 echo "========================================"
 echo "INSTALLATION COMPLETED"
 echo "========================================"
-
