@@ -263,7 +263,6 @@ def main():
     edit_cups_conf()
     run("sudo systemctl restart cups.service")
     run(f"sudo usermod -aG lpadmin {os.getlogin()}")
-    run("newgrp lpadmin")
 
     print("\n[*] IP address interface wlan atau ethernet:")
     for ip in get_ip():
